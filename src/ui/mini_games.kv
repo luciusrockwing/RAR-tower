@@ -1,0 +1,443 @@
+#:kivy 2.2.1
+
+<MiniGameScreen>:
+    MDBoxLayout:
+        orientation: 'vertical'
+        
+        # Game header
+        MDBoxLayout:
+            size_hint_y: None
+            height: "60dp"
+            padding: "8dp"
+            md_bg_color: app.theme_cls.primary_color
+            
+            MDLabel:
+                text: root.game_title
+                font_style: "H6"
+                size_hint_x: 0.6
+            
+            MDLabel:
+                text: f"Score: {root.game.score}" if root.game else "Score: 0"
+                size_hint_x: 0.2
+                halign: "right"
+            
+            MDLabel:
+                text: f"Time: {int(root.game.time_remaining)}" if root.game else "Time: 0"
+                size_hint_x: 0.2
+                halign: "right"
+        
+        # Game area
+        FloatLayout:
+            id: game_area
+            
+        # Game controls
+        MDBoxLayout:
+            size_hint_y: None
+            height: "50dp"
+            padding: "8dp"
+            spacing: "8dp"
+            md_bg_color: app.theme_cls.primary_color
+            
+            MDRaisedButton:
+                text: "Pause"
+                on_release: root.toggle_pause()
+                size_hint_x: 0.5
+            
+            MDRaisedButton:
+                text: "Exit"
+                on_release: root.exit_game()
+                size_hint_x: 0.5
+
+<ThiefGameWidget>:
+    canvas.before:
+        Color:
+            rgba: 0.95, 0.95, 0.95, 1
+        Rectangle:
+            pos: self.pos
+            size: self.size
+    
+    canvas:
+        # Draw floor layout
+        Color:
+            rgba: 0.8, 0.8, 0.8, 1
+        
+        # Draw thief
+        Color:
+            rgba: 1, 0, 0, 1
+        Rectangle:
+            pos: [self.thief_pos[0] - 10, self.thief_pos[1] - 10]
+            size: [20, 20]
+        
+        # Draw player
+        Color:
+            rgba: 0, 0, 1, 1
+        Rectangle:
+            pos: [self.player_pos[0] - 15, self.player_pos[1] - 15]
+            size: [30, 30]
+        
+        # Draw catch radius
+        Color:
+            rgba: 0, 0, 1, 0.2
+        Line:
+            circle: (self.player_pos[0], self.player_pos[1], self.catch_radius)
+            width: 1
+
+<CleaningGameWidget>:
+    canvas.before:
+        Color:
+            rgba: 0.95, 0.95, 0.95, 1
+        Rectangle:
+            pos: self.pos
+            size: self.size
+    
+    canvas:
+        # Draw dirty spots
+        Color:
+            rgba: 0.3, 0.2, 0.1, 0.8
+        
+        # Draw each dirty spot
+        <Instructions>
+            for spot in self.dirty_spots:
+                Ellipse:
+                    pos: spot[0] - spot[2], spot[1] - spot[2]
+                    size: spot[2] * 2, spot[2] * 2
+        </Instructions>
+        
+        # Draw clean spots
+        Color:
+            rgba: 0.9, 0.9, 1.0, 0.3
+        
+        # Draw each clean spot
+        <Instructions>
+            for x, y in self.clean_spots:
+                Ellipse:
+                    pos: x - 20, y - 20
+                    size: 40, 40
+        </Instructions>
+        
+        # Draw cleaning cursor
+        Color:
+            rgba: 0, 0.6, 1, 0.3 if self.is_cleaning else 0.1
+        Line:
+            circle: (self.cursor_pos[0], self.cursor_pos[1], self.cleaning_radius)
+            width: 2
+
+<ElevatorRepairGameWidget>:
+    canvas.before:
+        Color:
+            rgba: 0.1, 0.1, 0.15, 1
+        Rectangle:
+            pos: self.pos
+            size: self.size
+    
+    canvas:
+        # Draw completed connections
+        Color:
+            rgba: 0.2, 0.8, 0.2, 1
+        
+        # Draw each completed connection
+        <Instructions>
+            for input_node, output_node in self.connections.items():
+                input_pos = next(n['pos'] for n in self.nodes if n['id'] == input_node)
+                output_pos = next(n['pos'] for n in self.nodes if n['id'] == output_node)
+                Line:
+                    points: [input_pos[0], input_pos[1], output_pos[0], output_pos[1]]
+                    width: 2
+        </Instructions>
+        
+        # Draw nodes
+        <Instructions>
+            for node in self.nodes:
+                # Input nodes in blue
+                if node['type'] == 'input':
+                    Color:
+                        rgba: 0.2, 0.4, 0.8, 1
+                # Output nodes in green
+                else:
+                    Color:
+                        rgba: 0.2, 0.8, 0.2, 1
+                        
+                Ellipse:
+                    pos: node['pos'][0] - 15, node['pos'][1] - 15
+                    size: 30, 30
+        </Instructions>
+        
+        # Draw active wire being dragged
+        Color:
+            rgba: 0.8, 0.8, 0.2, 1
+        
+        <Instructions>
+            if self.selected_wire >= 0 and self.wires:
+                Line:
+                    points: [self.wires[0][0][0], self.wires[0][0][1],
+                            self.wires[0][1][0], self.wires[0][1][1]]
+                    width: 2
+        </Instructions>
+
+<PestControlGameWidget>:
+    canvas.before:
+        Color:
+            rgba: 0.95, 0.95, 0.95, 1
+        Rectangle:
+            pos: self.pos
+            size: self.size
+    
+    canvas:
+        # Draw pests
+        <Instructions>
+            for pest in self.pests:
+                Color:
+                    rgba: 0.3, 0.3, 0.3, 1
+                Ellipse:
+                    pos: [pest['pos'][0] - pest['size'], pest['pos'][1] - pest['size']]
+                    size: [pest['size'] * 2, pest['size'] * 2]
+        </Instructions>
+        
+        # Draw spray area when active
+        Color:
+            rgba: 0, 0.8, 0.2, 0.3 if self.is_spraying else 0
+        Ellipse:
+            pos: [self.cursor_pos[0] - self.spray_radius, 
+                  self.cursor_pos[1] - self.spray_radius]
+            size: [self.spray_radius * 2, self.spray_radius * 2]
+
+<FireFightingGameWidget>:
+    canvas.before:
+        Color:
+            rgba: 0.1, 0.1, 0.1, 1
+        Rectangle:
+            pos: self.pos
+            size: self.size
+    
+    canvas:
+        # Draw fires
+        <Instructions>
+            for fire in self.fires:
+                Color:
+                    rgba: 1, 0.5 * fire['intensity'], 0, 0.8
+                Ellipse:
+                    pos: [fire['pos'][0] - fire['size']/2, 
+                          fire['pos'][1] - fire['size']/2]
+                    size: [fire['size'], fire['size']]
+        </Instructions>
+        
+        # Draw items to save
+        <Instructions>
+            for item in self.items:
+                if not item['damaged'] and not item['saved']:
+                    Color:
+                        rgba: 1, 1, 0, 1  # Yellow for valuable items
+                elif item['saved']:
+                    Color:
+                        rgba: 0, 1, 0, 1  # Green for saved items
+                else:
+                    Color:
+                        rgba: 0.5, 0.5, 0.5, 1  # Gray for damaged items
+                Rectangle:
+                    pos: [item['pos'][0] - 15, item['pos'][1] - 15]
+                    size: [30, 30]
+        </Instructions>
+        
+        # Draw water spray when active
+        Color:
+            rgba: 0, 0.7, 1, 0.4 if self.is_spraying and self.water_level > 0 else 0
+        Ellipse:
+            pos: [self.cursor_pos[0] - self.spray_radius, 
+                  self.cursor_pos[1] - self.spray_radius]
+            size: [self.spray_radius * 2, self.spray_radius * 2]
+    
+    # Water level indicator
+    canvas.after:
+        Color:
+            rgba: 0, 0.7, 1, 1
+        Rectangle:
+            pos: [self.x + 10, self.y + 10]
+            size: [self.water_level * 2, 20]  # Width based on water level
+
+<VIPEscortGameWidget>:
+    canvas.before:
+        Color:
+            rgba: 0.95, 0.95, 0.95, 1
+        Rectangle:
+            pos: self.pos
+            size: self.size
+    
+    canvas:
+        # Draw path points
+        Color:
+            rgba: 0.8, 0.8, 0.8, 0.3
+        <Instructions>
+            for point in self.path_points:
+                Ellipse:
+                    pos: [point[0] - 5, point[1] - 5]
+                    size: [10, 10]
+        </Instructions>
+        
+        # Draw NPCs
+        Color:
+            rgba: 0.5, 0.5, 0.5, 0.7
+        <Instructions>
+            for npc in self.crowd_npcs:
+                Ellipse:
+                    pos: [npc['pos'][0] - 10, npc['pos'][1] - 10]
+                    size: [20, 20]
+        </Instructions>
+        
+        # Draw paparazzi
+        Color:
+            rgba: 1, 0.2, 0.2, 0.8
+        <Instructions>
+            for pap in self.paparazzi:
+                Rectangle:
+                    pos: [pap['pos'][0] - 12, pap['pos'][1] - 12]
+                    size: [24, 24]
+        </Instructions>
+        
+        # Draw guard and protection radius
+        Color:
+            rgba: 0, 0.6, 1, 0.2
+        Ellipse:
+            pos: [self.guard_pos[0] - self.guard_radius, 
+                  self.guard_pos[1] - self.guard_radius]
+            size: [self.guard_radius * 2, self.guard_radius * 2]
+            
+        Color:
+            rgba: 0, 0.4, 0.8, 1
+        Rectangle:
+            pos: [self.guard_pos[0] - 15, self.guard_pos[1] - 15]
+            size: [30, 30]
+        
+        # Draw VIP
+        Color:
+            rgba: 1, 0.8, 0, 1 if self.vip_status == 'protected' else \
+                  1, 0, 0, 1 if self.vip_status == 'harassed' else \
+                  0, 1, 0, 1
+        Ellipse:
+            pos: [self.vip_pos[0] - 20, self.vip_pos[1] - 20]
+            size: [40, 40]
+        
+        # Draw power-ups
+        <Instructions>
+            for power_up in self.power_ups:
+                if power_up['active']:
+                    Color:
+                        rgba: (1, 0.8, 0, 1) if power_up['type'] == 'speed_boost' else \
+                              (0, 0.8, 1, 1) if power_up['type'] == 'shield' else \
+                              (0.8, 0, 1, 1)  # crowd_control
+                    Ellipse:
+                        pos: [power_up['pos'][0] - 15, power_up['pos'][1] - 15]
+                        size: [30, 30]
+        </Instructions>
+        
+        # Draw active power-up effect
+        <Instructions>
+            if self.active_power_up == 'shield':
+                Color:
+                    rgba: 0, 0.8, 1, 0.3
+                Ellipse:
+                    pos: [self.vip_pos[0] - 60, self.vip_pos[1] - 60]
+                    size: [120, 120]
+            elif self.active_power_up == 'speed_boost':
+                Color:
+                    rgba: 1, 0.8, 0, 0.3
+                Ellipse:
+                    pos: [self.guard_pos[0] - self.guard_radius, 
+                          self.guard_pos[1] - self.guard_radius]
+                    size: [self.guard_radius * 2, self.guard_radius * 2]
+        </Instructions>
+    
+    # Power-up status
+    MDBoxLayout:
+        orientation: 'vertical'
+        size_hint: None, None
+        size: 200, 40
+        pos: root.x + root.width - 210, root.top - 50
+        md_bg_color: 0, 0, 0, 0.7 if root.active_power_up else 0
+        padding: 5
+        opacity: 1 if root.active_power_up else 0
+        
+        MDLabel:
+            text: f"{root.active_power_up.replace('_', ' ').title()}: {int(root.power_up_duration)}s"
+            font_size: '14sp'
+            size_hint_y: None
+            height: 30
+
+<PowerGridGameWidget>:
+    canvas.before:
+        Color:
+            rgba: 0.1, 0.1, 0.15, 1
+        Rectangle:
+            pos: self.pos
+            size: self.size
+    
+    canvas:
+        # Draw connections
+        <Instructions>
+            for node in self.grid_nodes:
+                for connected in node.connected_to:
+                    # Calculate power flow for connection color
+                    power_flow = min(1.0, (node.power_level + connected.power_level) / 200.0)
+                    Color:
+                        rgba: power_flow, 0.5 + power_flow * 0.5, 0, 1
+                    Line:
+                        points: [node.pos[0], node.pos[1], 
+                                connected.pos[0], connected.pos[1]]
+                        width: 2
+        </Instructions>
+        
+        # Draw nodes
+        <Instructions>
+            for i, node in enumerate(self.grid_nodes):
+                # Color based on node type and state
+                if node.type == 'generator':
+                    Color:
+                        rgba: 0, 1, 0, 1
+                elif node.type == 'consumer':
+                    # Red if undersupplied, green if well supplied
+                    supply_ratio = min(1.0, node.power_level / node.demand)
+                    Color:
+                        rgba: 1 - supply_ratio, supply_ratio, 0, 1
+                else:  # junction
+                    Color:
+                        rgba: 0.5, 0.5, 1, 1
+                
+                # Draw node
+                Ellipse:
+                    pos: [node.pos[0] - 15, node.pos[1] - 15]
+                    size: [30, 30]
+                
+                # Highlight selected node
+                if i == self.selected_node:
+                    Color:
+                        rgba: 1, 1, 1, 0.5
+                    Line:
+                        circle: (node.pos[0], node.pos[1], 18)
+                        width: 2
+        </Instructions>
+    
+    # Power statistics
+    MDBoxLayout:
+        orientation: 'vertical'
+        size_hint: None, None
+        size: 200, 80
+        pos: root.x + 10, root.top - 90
+        md_bg_color: 0, 0, 0, 0.7
+        padding: 5
+        
+        MDLabel:
+            text: f"Supply: {int(root.power_stats['total_supply'])}W"
+            font_size: '14sp'
+            size_hint_y: None
+            height: 20
+            
+        MDLabel:
+            text: f"Demand: {int(root.power_stats['total_demand'])}W"
+            font_size: '14sp'
+            size_hint_y: None
+            height: 20
+            
+        MDLabel:
+            text: f"Efficiency: {int(root.power_stats['efficiency'])}%"
+            font_size: '14sp'
+            size_hint_y: None
+            height: 20

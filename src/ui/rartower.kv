@@ -1,0 +1,228 @@
+#:kivy 2.2.1
+#:import FadeTransition kivy.uix.screenmanager.FadeTransition
+
+<MenuScreen>:
+    MDBoxLayout:
+        orientation: 'vertical'
+        padding: "16dp"
+        spacing: "16dp"
+        
+        MDLabel:
+            text: "RARTower"
+            halign: "center"
+            font_style: "H2"
+            adaptive_height: True
+        
+        Widget:
+            size_hint_y: 0.3
+        
+        MDRaisedButton:
+            text: "New Game"
+            size_hint_x: 0.5
+            pos_hint: {'center_x': 0.5}
+            on_release: app.root.current = 'game'
+        
+        MDRaisedButton:
+            text: "Load Game"
+            size_hint_x: 0.5
+            pos_hint: {'center_x': 0.5}
+            disabled: True
+        
+        MDRaisedButton:
+            text: "Settings"
+            size_hint_x: 0.5
+            pos_hint: {'center_x': 0.5}
+            disabled: True
+        
+        MDRaisedButton:
+            text: "Exit"
+            size_hint_x: 0.5
+            pos_hint: {'center_x': 0.5}
+            on_release: app.stop()
+        
+        Widget:
+            size_hint_y: 0.3
+
+<NotificationItem>:
+    size_hint_y: None
+    height: "80dp"
+    radius: [8]
+    orientation: 'vertical'
+    padding: "8dp"
+    
+    MDBoxLayout:
+        orientation: 'horizontal'
+        spacing: "8dp"
+        
+        MDIcon:
+            icon: root.icon
+            size_hint_x: None
+            width: "24dp"
+            theme_text_color: "Custom"
+            text_color: root.icon_color
+        
+        MDBoxLayout:
+            orientation: 'vertical'
+            
+            MDLabel:
+                text: root.title
+                bold: True
+                size_hint_y: None
+                height: "24dp"
+            
+            MDLabel:
+                text: root.message
+                font_size: "12sp"
+
+<GameScreen>:
+    MDBoxLayout:
+        orientation: 'horizontal'
+        
+        # Main game area (70% of width)
+        MDBoxLayout:
+            size_hint_x: 0.7
+            
+            # Game content here
+            MDBoxLayout:
+                orientation: 'vertical'
+                
+                # Top toolbar with time and speed controls
+                MDTopAppBar:
+                    title: app.game.current_time
+                    right_action_items:
+                        [
+                        ['pause', lambda x: app.game.toggle_pause()],
+                        ['fast-forward', lambda x: app.game.set_game_speed('fast')],
+                        ['flash', lambda x: app.game.set_game_speed('ultra')]
+                        ]
+                
+                # Main game area with notifications panel
+                MDBoxLayout:
+                    orientation: 'horizontal'
+                    
+                    # Game canvas
+                    Widget:
+                        size_hint_x: 0.8
+                        canvas:
+                            Color:
+                                rgba: 0.9, 0.9, 0.9, 1
+                            Rectangle:
+                                pos: self.pos
+                                size: self.size
+                    
+                    # Right sidebar with notifications
+                    MDBoxLayout:
+                        orientation: 'vertical'
+                        size_hint_x: 0.2
+                        md_bg_color: app.theme_cls.bg_light
+                        padding: "8dp"
+                        spacing: "8dp"
+                        
+                        MDLabel:
+                            text: "Notifications"
+                            font_style: "H6"
+                            size_hint_y: None
+                            height: "48dp"
+                        
+                        MDScrollView:
+                            MDList:
+                                id: notifications_list
+                                spacing: "4dp"
+                                
+                                # Notifications will be added here dynamically
+                                
+                        # Bottom controls
+                        MDBoxLayout:
+                            orientation: 'vertical'
+                            size_hint_y: None
+                            height: "120dp"
+                            spacing: "8dp"
+                            padding: "8dp"
+                            md_bg_color: app.theme_cls.bg_normal
+                            
+                            MDLabel:
+                                text: f"Money: ${app.game.money:,}"
+                                theme_text_color: "Primary"
+                            
+                            MDRaisedButton:
+                                text: "Menu"
+                                on_release: app.root.current = 'menu'
+        
+        # Right sidebar (30% of width)
+        MDBoxLayout:
+            orientation: 'vertical'
+            size_hint_x: 0.3
+            md_bg_color: app.theme_cls.bg_dark
+            padding: "8dp"
+            spacing: "8dp"
+            
+            # Time controls
+            MDCard:
+                size_hint_y: None
+                height: "100dp"
+                padding: "8dp"
+                
+                MDBoxLayout:
+                    orientation: 'vertical'
+                    
+                    MDLabel:
+                        text: root.current_time
+                        halign: "center"
+                    
+                    MDBoxLayout:
+                        orientation: 'horizontal'
+                        spacing: "4dp"
+                        adaptive_height: True
+                        
+                        MDIconButton:
+                            icon: "pause"
+                            on_release: root.set_speed('pause')
+                            md_bg_color: app.theme_cls.primary_color if root.current_speed == 'pause' else [0,0,0,0]
+                        
+                        MDIconButton:
+                            icon: "play"
+                            on_release: root.set_speed('normal')
+                            md_bg_color: app.theme_cls.primary_color if root.current_speed == 'normal' else [0,0,0,0]
+                        
+                        MDIconButton:
+                            icon: "fast-forward"
+                            on_release: root.set_speed('fast')
+                            md_bg_color: app.theme_cls.primary_color if root.current_speed == 'fast' else [0,0,0,0]
+                        
+                        MDIconButton:
+                            icon: "fast-forward-30"
+                            on_release: root.set_speed('ultra')
+                            md_bg_color: app.theme_cls.primary_color if root.current_speed == 'ultra' else [0,0,0,0]
+            
+            # Stats display
+            MDCard:
+                size_hint_y: None
+                height: "120dp"
+                padding: "8dp"
+                
+                MDBoxLayout:
+                    orientation: 'vertical'
+                    
+                    MDLabel:
+                        text: f"Money: ${root.money:,}"
+                        halign: "left"
+                    
+                    MDLabel:
+                        text: f"Population: {root.population:,}"
+                        halign: "left"
+                    
+                    MDLabel:
+                        text: f"Star Rating: {'⭐' * root.star_rating}"
+                        halign: "left"
+            
+            # Notifications panel
+            MDLabel:
+                text: "Notifications"
+                size_hint_y: None
+                height: "40dp"
+                bold: True
+            
+            ScrollView:
+                MDList:
+                    id: notifications_list
+                    spacing: "4dp"

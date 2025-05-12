@@ -1,0 +1,31 @@
+{
+  "name": "tokyo",
+  "colors": {
+    "primary": [0.93, 0.33, 0.33, 1.0],
+    "secondary": [0.2, 0.2, 0.8, 1.0],
+    "background": [0.15, 0.15, 0.15, 1.0],
+    "text": [1.0, 1.0, 1.0, 1.0],
+    "accent": [1.0, 0.84, 0.0, 1.0]
+  },
+  "sounds": {
+    "background": "tokyo_ambience.mp3",
+    "festival": "festival.mp3",
+    "kaiju": "kaiju_roar.mp3",
+    "emergency": "siren.mp3"
+  },
+  "fonts": {
+    "title": "NotoSansJP-Bold.ttf",
+    "text": "NotoSansJP-Regular.ttf"
+  },
+  "special_effects": {
+    "kaiju_attack": {
+      "screen_shake": true,
+      "particle_effect": "destruction",
+      "sound_effect": "kaiju_roar.mp3"
+    },
+    "festival": {
+      "particle_effect": "fireworks",
+      "sound_effect": "festival.mp3"
+    }
+  }
+}
