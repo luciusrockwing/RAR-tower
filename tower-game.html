@@ -1,0 +1,954 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SkySim Tower</title>
+  <style>
+    :root {
+      --primary-color: #4CAF50;
+      --secondary-color: #2196F3;
+      --warning-color: #FF9800;
+      --danger-color: #F44336;
+      --light-bg: #f5f5f5;
+      --dark-bg: #333;
+      --text-color: #212121;
+      --light-text: #f5f5f5;
+    }
+    
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    
+    body {
+      font-family: 'Arial', sans-serif;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      background-color: var(--light-bg);
+      color: var(--text-color);
+      overflow: hidden;
+    }
+    
+    .game-container {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+    }
+    
+    .sidebar {
+      width: 250px;
+      background-color: var(--dark-bg);
+      color: var(--light-text);
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+    }
+    
+    .main-panel {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    
+    .stats-bar {
+      display: flex;
+      justify-content: space-between;
+      padding: 10px;
+      background-color: var(--dark-bg);
+      color: var(--light-text);
+    }
+    
+    .stats-item {
+      display: flex;
+      align-items: center;
+      margin-right: 15px;
+    }
+    
+    .stats-icon {
+      margin-right: 5px;
+      font-size: 18px;
+    }
+    
+    #gameCanvas {
+      flex: 1;
+      background: linear-gradient(to bottom, #87CEEB, #1E90FF);
+    }
+    
+    .tool-category {
+      margin-bottom: 15px;
+    }
+    
+    .tool-header {
+      font-weight: bold;
+      padding: 5px 0;
+      margin-bottom: 5px;
+      border-bottom: 1px solid #555;
+    }
+    
+    .tool-buttons {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 5px;
+    }
+    
+    .tool-button {
+      padding: 8px 5px;
+      text-align: center;
+      background-color: #555;
+      border: none;
+      color: white;
+      cursor: pointer;
+      border-radius: 3px;
+      font-size: 12px;
+      transition: background-color 0.2s;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    
+    .tool-button:hover {
+      background-color: var(--primary-color);
+    }
+    
+    .tool-icon {
+      font-size: 18px;
+      margin-bottom: 3px;
+    }
+    
+    .tool-button.selected {
+      background-color: var(--primary-color);
+    }
+    
+    .speed-controls {
+      display: flex;
+      gap: 5px;
+      margin-top: auto;
+      padding-top: 10px;
+    }
+    
+    .speed-button {
+      flex: 1;
+      padding: 8px;
+      text-align: center;
+      background-color: #555;
+      border: none;
+      color: white;
+      cursor: pointer;
+      border-radius: 3px;
+    }
+    
+    .speed-button.active {
+      background-color: var(--primary-color);
+    }
+    
+    .tooltip {
+      position: absolute;
+      background-color: rgba(0, 0, 0, 0.8);
+      color: white;
+      padding: 5px 10px;
+      border-radius: 3px;
+      font-size: 12px;
+      z-index: 100;
+      pointer-events: none;
+      transition: opacity 0.2s;
+      opacity: 0;
+    }
+    
+    .modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.5);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s;
+    }
+    
+    .modal.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    
+    .modal-content {
+      background-color: white;
+      padding: 20px;
+      border-radius: 5px;
+      width: 400px;
+      max-width: 90%;
+    }
+    
+    .modal-header {
+      font-size: 18px;
+      font-weight: bold;
+      margin-bottom: 15px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid #ddd;
+    }
+    
+    .modal-buttons {
+      display: flex;
+      justify-content: flex-end;
+      margin-top: 20px;
+    }
+    
+    .modal-button {
+      padding: 8px 15px;
+      margin-left: 10px;
+      border: none;
+      border-radius: 3px;
+      cursor: pointer;
+    }
+    
+    .modal-button.primary {
+      background-color: var(--primary-color);
+      color: white;
+    }
+    
+    .modal-button.secondary {
+      background-color: #ccc;
+    }
+    
+    .time-display {
+      padding: 5px 10px;
+      background-color: #444;
+      margin-left: auto;
+      border-radius: 3px;
+    }
+    
+    .notifications {
+      position: absolute;
+      bottom: 20px;
+      right: 20px;
+      width: 300px;
+      z-index: 500;
+    }
+    
+    .notification {
+      background-color: white;
+      border-left: 5px solid var(--primary-color);
+      padding: 10px 15px;
+      margin-bottom: 10px;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+      border-radius: 3px;
+      opacity: 0;
+      transform: translateX(50px);
+      animation: slideIn 0.3s forwards;
+    }
+    
+    @keyframes slideIn {
+      to {
+        opacity: 1;
+        transform: translateX(0);
+      }
+    }
+    
+    .notification.error {
+      border-left-color: var(--danger-color);
+    }
+    
+    .notification.warning {
+      border-left-color: var(--warning-color);
+    }
+    
+    .notification-title {
+      font-weight: bold;
+      margin-bottom: 5px;
+    }
+    
+    /* Grid overlay */
+    .grid-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      pointer-events: none;
+      opacity: 0.2;
+    }
+  </style>
+</head>
+<body>
+  <div class="game-container">
+    <div class="sidebar">
+      <div class="tool-category">
+        <div class="tool-header">Construction</div>
+        <div class="tool-buttons">
+          <button class="tool-button" data-tool="lobby" data-tooltip="Lobby: Required on ground floor">
+            <span class="tool-icon">🏢</span>
+            Lobby
+          </button>
+          <button class="tool-button" data-tool="apartment" data-tooltip="Apartment: Housing for residents">
+            <span class="tool-icon">🏠</span>
+            Apt
+          </button>
+          <button class="tool-button" data-tool="office" data-tooltip="Office: For businesses">
+            <span class="tool-icon">💼</span>
+            Office
+          </button>
+          <button class="tool-button" data-tool="restaurant" data-tooltip="Restaurant: Food service">
+            <span class="tool-icon">🍔</span>
+            Food
+          </button>
+          <button class="tool-button" data-tool="shop" data-tooltip="Shop: Retail space">
+            <span class="tool-icon">🛍️</span>
+            Shop
+          </button>
+          <button class="tool-button" data-tool="hotel" data-tooltip="Hotel: Rooms for visitors">
+            <span class="tool-icon">🛏️</span>
+            Hotel
+          </button>
+        </div>
+      </div>
+      
+      <div class="tool-category">
+        <div class="tool-header">Transportation</div>
+        <div class="tool-buttons">
+          <button class="tool-button" data-tool="elevator" data-tooltip="Elevator: Standard speed">
+            <span class="tool-icon">⬆️</span>
+            Elevator
+          </button>
+          <button class="tool-button" data-tool="express" data-tooltip="Express Elevator: Fast but expensive">
+            <span class="tool-icon">🚀</span>
+            Express
+          </button>
+          <button class="tool-button" data-tool="stairs" data-tooltip="Stairs: Cheap but slow">
+            <span class="tool-icon">🪜</span>
+            Stairs
+          </button>
+          <button class="tool-button" data-tool="escalator" data-tooltip="Escalator: Medium speed">
+            <span class="tool-icon">↗️</span>
+            Escalator
+          </button>
+        </div>
+      </div>
+      
+      <div class="tool-category">
+        <div class="tool-header">Facilities</div>
+        <div class="tool-buttons">
+          <button class="tool-button" data-tool="security" data-tooltip="Security: Improves safety">
+            <span class="tool-icon">👮</span>
+            Security
+          </button>
+          <button class="tool-button" data-tool="parking" data-tooltip="Parking: For vehicles">
+            <span class="tool-icon">🚗</span>
+            Parking
+          </button>
+          <button class="tool-button" data-tool="recycling" data-tooltip="Recycling: Environmental impact">
+            <span class="tool-icon">♻️</span>
+            Recycle
+          </button>
+          <button class="tool-button" data-tool="medical" data-tooltip="Medical: Health services">
+            <span class="tool-icon">🏥</span>
+            Medical
+          </button>
+        </div>
+      </div>
+      
+      <div class="tool-category">
+        <div class="tool-header">Tools</div>
+        <div class="tool-buttons">
+          <button class="tool-button" data-tool="info" data-tooltip="Info: View details">
+            <span class="tool-icon">ℹ️</span>
+            Info
+          </button>
+          <button class="tool-button" data-tool="demolish" data-tooltip="Demolish: Remove structures">
+            <span class="tool-icon">🗑️</span>
+            Demolish
+          </button>
+        </div>
+      </div>
+      
+      <div class="speed-controls">
+        <button class="speed-button" data-speed="0">⏸️</button>
+        <button class="speed-button active" data-speed="1">▶️</button>
+        <button class="speed-button" data-speed="2">⏩</button>
+        <button class="speed-button" data-speed="3">⏭️</button>
+      </div>
+    </div>
+    
+    <div class="main-panel">
+      <div class="stats-bar">
+        <div class="stats-item">
+          <span class="stats-icon">💰</span>
+          $<span id="money">1000000</span>
+        </div>
+        <div class="stats-item">
+          <span class="stats-icon">👥</span>
+          <span id="population">0</span>
+        </div>
+        <div class="stats-item">
+          <span class="stats-icon">⭐</span>
+          <span id="rating">0</span>/5
+        </div>
+        <div class="time-display">
+          Day <span id="day">1</span>, <span id="hour">8</span>:00
+        </div>
+      </div>
+      
+      <canvas id="gameCanvas"></canvas>
+    </div>
+  </div>
+  
+  <div class="tooltip" id="tooltip"></div>
+  
+  <div class="notifications" id="notifications"></div>
+  
+  <div class="modal" id="startModal">
+    <div class="modal-content">
+      <div class="modal-header">Welcome to SkySim Tower</div>
+      <p>Build and manage your own skyscraper! Start by constructing a lobby on the ground floor and adding various facilities to attract residents and businesses.</p>
+      <p>Use the transportation options to help people move around your tower efficiently.</p>
+      <div class="modal-buttons">
+        <button class="modal-button primary" id="startGame">Start Building</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Game configuration
+    const config = {
+      gridSize: 32,
+      floorHeight: 64,
+      maxFloors: 30,
+      initialMoney: 1000000,
+      gameSpeed: 1,
+      timeScale: 10, // 1 real second = 10 game minutes
+      saveInterval: 60, // Save every 60 seconds
+      prices: {
+        floor: 50000,
+        lobby: 100000,
+        apartment: 80000,
+        office: 120000,
+        restaurant: 150000,
+        shop: 100000,
+        hotel: 200000,
+        elevator: 75000,
+        express: 150000,
+        stairs: 20000,
+        escalator: 50000,
+        security: 30000,
+        parking: 40000,
+        recycling: 25000,
+        medical: 60000
+      },
+      roomSizes: {
+        lobby: 6,
+        apartment: 3,
+        office: 4,
+        restaurant: 5,
+        shop: 3,
+        hotel: 4,
+        security: 2,
+        parking: 8,
+        recycling: 2,
+        medical: 4
+      },
+      transportSizes: {
+        elevator: 2,
+        express: 2,
+        stairs: 1,
+        escalator: 2
+      },
+      roomColors: {
+        empty: '#d3d3d3',
+        lobby: '#4CAF50',
+        apartment: '#2196F3',
+        office: '#FF9800',
+        restaurant: '#F44336',
+        shop: '#9C27B0',
+        hotel: '#00BCD4',
+        security: '#607D8B',
+        parking: '#795548',
+        recycling: '#8BC34A',
+        medical: '#E91E63'
+      },
+      transportColors: {
+        elevator: '#333333',
+        express: '#673AB7',
+        stairs: '#757575',
+        escalator: '#009688'
+      }
+    };
+
+    // Game state
+    const state = {
+      money: config.initialMoney,
+      population: 0,
+      rating: 0,
+      floors: 1,
+      currentTool: null,
+      grid: [],
+      elevators: [],
+      people: [],
+      gameTime: {
+        day: 1,
+        hour: 8,
+        minute: 0
+      },
+      running: false,
+      gameSpeed: 1
+    };
+
+    // DOM references
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const tooltip = document.getElementById('tooltip');
+    const notificationsContainer = document.getElementById('notifications');
+
+    // Initialize game
+    function initGame() {
+      // Show start modal
+      document.getElementById('startModal').classList.add('active');
+      
+      // Initialize grid
+      resetGrid();
+      
+      // Update stats display
+      updateStats();
+      
+      // Add event listeners
+      setupEventListeners();
+      
+      // Setup game loop
+      setupGameLoop();
+    }
+
+    // Initialize empty grid
+    function resetGrid() {
+      state.grid = [];
+      for (let y = 0; y < config.maxFloors; y++) {
+        const row = [];
+        for (let x = 0; x < 20; x++) {
+          row.push({
+            type: 'empty',
+            occupied: false,
+            data: {}
+          });
+        }
+        state.grid.push(row);
+      }
+    }
+
+    // Update money, population, and rating displays
+    function updateStats() {
+      document.getElementById('money').textContent = state.money.toLocaleString();
+      document.getElementById('population').textContent = state.population;
+      document.getElementById('rating').textContent = state.rating;
+      document.getElementById('day').textContent = state.gameTime.day;
+      document.getElementById('hour').textContent = state.gameTime.hour;
+    }
+
+    // Set up event listeners
+    function setupEventListeners() {
+      // Tool selection
+      document.querySelectorAll('.tool-button').forEach(button => {
+        button.addEventListener('click', () => {
+          const tool = button.getAttribute('data-tool');
+          selectTool(tool, button);
+        });
+        
+        // Tooltips
+        button.addEventListener('mouseenter', (e) => {
+          const tooltipContent = button.getAttribute('data-tooltip');
+          showTooltip(tooltipContent, e.clientX, e.clientY);
+        });
+        
+        button.addEventListener('mouseleave', () => {
+          hideTooltip();
+        });
+      });
+      
+      // Game speed controls
+      document.querySelectorAll('.speed-button').forEach(button => {
+        button.addEventListener('click', () => {
+          const speed = parseInt(button.getAttribute('data-speed'));
+          setGameSpeed(speed);
+          
+          // Update active button
+          document.querySelectorAll('.speed-button').forEach(btn => {
+            btn.classList.remove('active');
+          });
+          button.classList.add('active');
+        });
+      });
+      
+      // Start game button
+      document.getElementById('startGame').addEventListener('click', () => {
+        document.getElementById('startModal').classList.remove('active');
+        state.running = true;
+      });
+      
+      // Canvas click
+      canvas.addEventListener('click', handleCanvasClick);
+      
+      // Canvas mouse move for hover effects
+      canvas.addEventListener('mousemove', handleCanvasMouseMove);
+      
+      // Window resize
+      window.addEventListener('resize', handleResize);
+      handleResize();
+    }
+
+    // Handle window resize
+    function handleResize() {
+      canvas.width = canvas.offsetWidth;
+      canvas.height = canvas.offsetHeight;
+      render();
+    }
+
+    // Select a tool
+    function selectTool(tool, buttonElement) {
+      // Deselect any selected tool
+      document.querySelectorAll('.tool-button').forEach(btn => {
+        btn.classList.remove('selected');
+      });
+      
+      if (state.currentTool === tool) {
+        // Toggle off if already selected
+        state.currentTool = null;
+      } else {
+        // Select new tool
+        state.currentTool = tool;
+        buttonElement.classList.add('selected');
+      }
+    }
+
+    // Show tooltip
+    function showTooltip(content, x, y) {
+      tooltip.textContent = content;
+      tooltip.style.left = `${x + 10}px`;
+      tooltip.style.top = `${y + 10}px`;
+      tooltip.style.opacity = '1';
+    }
+
+    // Hide tooltip
+    function hideTooltip() {
+      tooltip.style.opacity = '0';
+    }
+
+    // Show notification
+    function showNotification(title, message, type = 'info') {
+      const notification = document.createElement('div');
+      notification.className = `notification ${type}`;
+      
+      const notificationTitle = document.createElement('div');
+      notificationTitle.className = 'notification-title';
+      notificationTitle.textContent = title;
+      
+      const notificationMessage = document.createElement('div');
+      notificationMessage.textContent = message;
+      
+      notification.appendChild(notificationTitle);
+      notification.appendChild(notificationMessage);
+      
+      notificationsContainer.appendChild(notification);
+      
+      // Remove after animation
+      setTimeout(() => {
+        notification.style.opacity = '0';
+        setTimeout(() => {
+          notification.remove();
+        }, 300);
+      }, 5000);
+    }
+
+    // Handle canvas click
+    function handleCanvasClick(e) {
+      if (!state.currentTool) return;
+      
+      const rect = canvas.getBoundingClientRect();
+      const mouseX = e.clientX - rect.left;
+      const mouseY = e.clientY - rect.top;
+      
+      // Convert to grid coordinates
+      const gridX = Math.floor(mouseX / config.gridSize);
+      const gridY = Math.floor(mouseY / config.gridSize);
+      
+      // Calculate actual floor (from bottom)
+      const actualY = Math.floor(state.grid.length - (mouseY / config.floorHeight) - 1);
+      
+      if (actualY >= 0 && actualY < state.grid.length && gridX >= 0 && gridX < 20) {
+        placeTool(gridX, actualY);
+      }
+    }
+
+    // Handle canvas mouse move
+    function handleCanvasMouseMove(e) {
+      const rect = canvas.getBoundingClientRect();
+      const mouseX = e.clientX - rect.left;
+      const mouseY = e.clientY - rect.top;
+      
+      // Convert to grid coordinates
+      const gridX = Math.floor(mouseX / config.gridSize);
+      const actualY = Math.floor(state.grid.length - (mouseY / config.floorHeight) - 1);
+      
+      if (actualY >= 0 && actualY < state.grid.length && gridX >= 0 && gridX < 20) {
+        // Show tooltip with cell info
+        const cell = state.grid[actualY][gridX];
+        if (cell.type !== 'empty') {
+          showTooltip(`${cell.type.charAt(0).toUpperCase() + cell.type.slice(1)}`, e.clientX, e.clientY);
+        } else {
+          hideTooltip();
+        }
+      } else {
+        hideTooltip();
+      }
+    }
+
+    // Place selected tool on grid
+    function placeTool(x, y) {
+      if (state.currentTool === 'info') {
+        // Show information about the cell
+        showCellInfo(x, y);
+        return;
+      }
+      
+      if (state.currentTool === 'demolish') {
+        // Demolish the cell
+        demolishCell(x, y);
+        return;
+      }
+      
+      // Check if it's a transport tool
+      const isTransport = ['elevator', 'express', 'stairs', 'escalator'].includes(state.currentTool);
+      
+      // Check cost
+      const cost = config.prices[state.currentTool];
+      if (state.money < cost) {
+        showNotification('Insufficient Funds', `You need $${cost.toLocaleString()} to build a ${state.currentTool}.`, 'error');
+        return;
+      }
+      
+      // Check special rules
+      if (state.currentTool === 'lobby' && y !== 0) {
+        showNotification('Building Error', 'Lobbies can only be built on the ground floor.', 'error');
+        return;
+      }
+      
+      // Get size requirements
+      let size;
+      if (isTransport) {
+        size = config.transportSizes[state.currentTool];
+      } else {
+        size = config.roomSizes[state.currentTool];
+      }
+      
+      // Check if there's enough space
+      if (!checkSpace(x, y, size)) {
+        showNotification('Building Error', 'Not enough space for this structure.', 'error');
+        return;
+      }
+      
+      // Place the structure
+      for (let i = 0; i < size; i++) {
+        if (x + i < 20) {
+          state.grid[y][x + i] = {
+            type: state.currentTool,
+            occupied: true,
+            data: {
+              condition: 100,
+              built: Date.now(),
+              lastMaintenance: Date.now()
+            }
+          };
+        }
+      }
+      
+      // Charge money
+      state.money -= cost;
+      
+      // Update game state
+      if (state.currentTool === 'apartment') {
+        state.population += 4; // Each apartment houses 4 people
+      } else if (state.currentTool === 'hotel') {
+        state.population += 2; // Each hotel room houses 2 guests
+      }
+      
+      // Update stats
+      updateStats();
+      
+      // Show notification
+      showNotification('Construction Complete', `${state.currentTool.charAt(0).toUpperCase() + state.currentTool.slice(1)} built successfully.`);
+      
+      // Redraw
+      render();
+    }
+
+    // Check if there's enough space for a structure
+    function checkSpace(x, y, size) {
+      if (x + size > 20) return false;
+      
+      for (let i = 0; i < size; i++) {
+        if (state.grid[y][x + i].occupied) {
+          return false;
+        }
+      }
+      
+      return true;
+    }
+
+    // Show cell info
+    function showCellInfo(x, y) {
+      const cell = state.grid[y][x];
+      if (cell.type === 'empty') {
+        showNotification('Empty Space', 'This space is unoccupied.', 'info');
+      } else {
+        showNotification(
+          `${cell.type.charAt(0).toUpperCase() + cell.type.slice(1)}`, 
+          `Condition: ${cell.data.condition}%\nBuilt: ${new Date(cell.data.built).toLocaleDateString()}`,
+          'info'
+        );
+      }
+    }
+
+    // Demolish a cell
+    function demolishCell(x, y) {
+      const cell = state.grid[y][x];
+      
+      if (cell.type === 'empty') {
+        showNotification('Demolish Error', 'Nothing to demolish here.', 'error');
+        return;
+      }
+      
+      // Check if it's part of a larger structure
+      let size;
+      if (['elevator', 'express', 'stairs', 'escalator'].includes(cell.type)) {
+        size = config.transportSizes[cell.type];
+      } else {
+        size = config.roomSizes[cell.type];
+      }
+      
+      // Find the start of the structure
+      let startX = x;
+      while (startX > 0 && state.grid[y][startX - 1].type === cell.type) {
+        startX--;
+      }
+      
+      // Demolish the structure
+      for (let i = 0; i < size; i++) {
+        if (startX + i < 20 && state.grid[y][startX + i].type === cell.type) {
+          state.grid[y][startX + i] = {
+            type: 'empty',
+            occupied: false,
+            data: {}
+          };
+        }
+      }
+      
+      // Update game state
+      if (cell.type === 'apartment') {
+        state.population -= 4;
+      } else if (cell.type === 'hotel') {
+        state.population -= 2;
+      }
+      
+      // Update stats
+      updateStats();
+      
+      // Show notification
+      showNotification('Demolition Complete', `${cell.type.charAt(0).toUpperCase() + cell.type.slice(1)} demolished successfully.`);
+      
+      // Redraw
+      render();
+    }
+
+    // Set game speed
+    function setGameSpeed(speed) {
+      state.gameSpeed = speed;
+    }
+
+    // Setup game loop
+    function setupGameLoop() {
+      let lastTime = 0;
+      const loop = (timestamp) => {
+        const deltaTime = timestamp - lastTime;
+        
+        if (state.running && state.gameSpeed > 0 && deltaTime > 1000 / (60 * state.gameSpeed)) {
+          lastTime = timestamp;
+          update(deltaTime);
+        }
+        
+        render();
+        requestAnimationFrame(loop);
+      };
+      
+      requestAnimationFrame(loop);
+    }
+
+    // Update game state
+    function update(deltaTime) {
+      // Update game time
+      updateGameTime(deltaTime);
+      
+      // Generate revenue
+      generateRevenue();
+      
+      // Update building conditions
+      updateBuildingConditions();
+      
+      // Update NPCs
+      updatePeople();
+      
+      // Calculate tower rating
+      calculateRating();
+      
+      // Update stats display
+      updateStats();
+    }
+
+    // Update game time
+    function updateGameTime(deltaTime) {
+      // Calculate minutes passed based on time scale and game speed
+      const minutesPassed = (deltaTime / 1000) * config.timeScale * state.gameSpeed;
+      
+      state.gameTime.minute += minutesPassed;
+      
+      // Update hours
+      if (state.gameTime.minute >= 60) {
+        state.gameTime.hour += Math.floor(state.gameTime.minute / 60);
+        state.gameTime.minute %= 60;
+        
+        // Update days
+        if (state.gameTime.hour >= 24) {
+          state.gameTime.day += Math.floor(state.gameTime.hour / 24);
+          state.gameTime.hour %= 24;
+        }
+      }
+    }
+
+    // Generate revenue
+    function generateRevenue() {
+      // Only generate revenue every hour
+      if (Math.floor(state.gameTime.minute) === 0) {
+        let hourlyRevenue = 0;
+        
+        // Calculate revenue for each occupied cell
+        for (let y = 0; y < state.grid.length; y++) {
+          for (let x = 0; x < state.grid[y].length; x++) {
+            const cell = state.grid[y][x];
+            
+            if (cell.occupied) {
+              switch (cell.type) {
+                case 'apartment':
+                  hourlyRevenue += 50 * (cell.data.condition / 100);
+                  break;
+                case 'office':
+                  // Offices make more money during business hours
+                  if (state.gameTime.hour >= 9 && state.gameTime.hour <= 17) {
+                    hourlyRevenue += 100 * (cell.data.condition / 100);
+                  } else {
+                    hourlyRevenue += 20 * (cell.data.condition / 100);
+                  }
+                  break;
+                case 'restaurant':
+                  // Restaurants make more money during meal times
+                  if ([7, 8, 12, 13, 18, 19
